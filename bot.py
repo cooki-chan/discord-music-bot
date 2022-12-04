@@ -45,6 +45,7 @@ lastChannel = None
 
 
 #---------------------- DISCORD COMMANDS -------------------------------------------------------------------------------------------------------------------
+#TODO Make a shuffle command
 
 #Play Song
 @tree.command(name = "play", description = "A yt/spotify playlist, yt vid, or a general search! spotify and search may be a bit inaccurate...", guilds=guilds)
@@ -94,7 +95,6 @@ async def play(ctx, search: str):
                 print("[play] preloaded " + i.title)
             index+=1
             
-    
     #Spotify Playlist
     elif re.search("open.spotify.com/playlist", search):
 
@@ -119,7 +119,7 @@ async def play(ctx, search: str):
                 print("[play] added " + i['track']['name'])
             else: #Put all others to be added in background
                 downloadQ.put(i['track']['name'] + " by " + i["track"]["artists"][0]["name"])
-                print("[play] preloaded " + i.title)
+                print("[play] preloaded " + i['track']['name'])
             
             index+=1
 
@@ -140,7 +140,7 @@ async def play(ctx, search: str):
                 print("[play] added " + i['name'])
             else: #Put all others to be added in background
                 downloadQ.put(i["name"] + " " + i["artists"][0]["name"])
-                print("[play] preloaded " + i.title)
+                print("[play] preloaded " + i['name'])
             
             index+=1
     
@@ -185,12 +185,12 @@ async def play(ctx, search: str):
     
     await ctx.followup.send(embed=successEmbed(f"{nameOf} has been added!"), ephemeral=True)
 
-#Skips the current song
+#Skips the current song TODO Make amount of soungs skipped 
 @tree.command(name = "skip", description = "next.", guilds=guilds)
 async def skip(ctx):
     if await checkConditions(ctx, False): return
 
-    await ctx.response.defer(ephemeral=True)
+    await ctx.response.defer()
     voice.pause() #Cut off the song at that exact moment
     if mainQ.empty():
         await endBot()
@@ -198,13 +198,13 @@ async def skip(ctx):
     else:
         track = mainQ.get()
         await playSong(track, ctx.channel)
-        await ctx.followup.send(embed = defaultEmbed(":fast_forward: Song has been skipped!", "Playing next song..."), ephemeral=True)
+        await ctx.followup.send(embed = defaultEmbed(":fast_forward: Song has been skipped!", "Playing next song..."))
 
 @tree.command(name = "queue", description = "what's next?", guilds=guilds)
 async def queue(ctx):
     if await checkConditions(ctx, False): return
 
-    await ctx.response.defer(ephemeral=True)
+    await ctx.response.defer()
     embedVar = discord.Embed(title="Song Queue! :notes: :notes: :notes:", description="", color=0x1999ff)
     index = 1
     if voice != None:
@@ -226,7 +226,7 @@ async def queue(ctx):
 @tree.command(name = "stop", description = "end me D:", guilds=guilds)
 async def stop(ctx):
     if await checkConditions(ctx, False): return
-    ctx.response.send_message(embed = defaultEmbed("Bot has been stopped.", "Hope you enjoyed my songs!"))
+    await ctx.response.send_message(embed = defaultEmbed("Bot has been stopped.", "Hope you enjoyed my songs!"))
     await endBot()
 
 @tree.command(name = "pause", description = "pause", guilds=guilds)
@@ -275,7 +275,7 @@ async def debug(ctx):
 
     embedVar.add_field(name=f"Main Queue Length", value=str(mainQ.qsize()), inline=False)
     embedVar.add_field(name=f"Backload Queue Length", value=str(downloadQ.qsize()), inline=False)
-    await ctx.response.send_message(embed = embedVar)
+    await ctx.response.send_message(embed = embedVar, ephemeral=True)
 
 
 #---------------------- LOOPS (NOT COMMANDS) --------------------------------------------------------------------------------------------------------------
@@ -313,7 +313,7 @@ async def main():
         load.start()
 
 #Background Song Loader
-@tasks.loop(seconds=0.1)
+@tasks.loop(seconds=1)
 async def load():
     if downloadQ.empty():
         load.stop()
